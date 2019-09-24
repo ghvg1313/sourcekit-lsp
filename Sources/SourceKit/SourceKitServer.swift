@@ -318,7 +318,15 @@ extension SourceKitServer {
   }
 
   func clientInitialized(_: Notification<InitializedNotification>) {
-    // Nothing to do.
+    let hasConfigurationCapability = workspace?.clientCapabilities.workspace?.configuration ?? false
+    if hasConfigurationCapability {
+      let reg = Registration(requestType: DidChangeConfiguration.self)
+        _ = client.send(CapibilityRegistration(registrations: [reg]), queue: DispatchQueue.global(), reply: { result in
+            if let error = result.failure {
+              log("error registering configuration change notification: \(error)")
+            }
+        })
+    }
   }
 
   func cancelRequest(_ notification: Notification<CancelRequest>) {
