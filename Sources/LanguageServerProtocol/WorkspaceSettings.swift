@@ -17,16 +17,16 @@ public enum WorkspaceSettingsChange: Codable, Hashable {
 
   case clangd(ClangWorkspaceSettings)
   case documentUpdated(DocumentUpdatedBuildSettings)
+  case client(ConfigurationSettings)
   case unknown
 
   public init(from decoder: Decoder) throws {
-    // FIXME: doing trial deserialization only works if we have at least one non-optional unique
-    // key, which we don't yet.  For now, assume that if we add another kind of workspace settings
-    // it will rectify this issue.
     if let settings = try? ClangWorkspaceSettings(from: decoder) {
       self = .clangd(settings)
     } else if let settings = try? DocumentUpdatedBuildSettings(from: decoder) {
       self = .documentUpdated(settings)
+    } else if let settings = try? ConfigurationSettings(from: decoder) {
+      self = .client(settings)
     } else {
       self = .unknown
     }
@@ -38,7 +38,7 @@ public enum WorkspaceSettingsChange: Codable, Hashable {
       try settings.encode(to: encoder)
     case .documentUpdated(let settings):
       try settings.encode(to: encoder)
-    case .unknown:
+    case .client(_), .unknown:
       break // Nothing to do.
     }
   }
@@ -49,6 +49,10 @@ public enum WorkspaceSettingsChange: Codable, Hashable {
 /// Clangd will accept *either* a path to a compilation database on disk, or the contents of a
 /// compilation database to be managed in-memory, but they cannot be mixed.
 public struct ClangWorkspaceSettings: Codable, Hashable {
+  private enum CodingKeys: String, CodingKey {
+      case compilationDatabasePath = "compilationDatabasePath"
+      case compilationDatabaseChanges = "compilationDatabaseChanges"
+  }
 
   /// The path to a json compilation database.
   public var compilationDatabasePath: String?
@@ -62,6 +66,15 @@ public struct ClangWorkspaceSettings: Codable, Hashable {
   ) {
     self.compilationDatabasePath = compilationDatabasePath
     self.compilationDatabaseChanges = compilationDatabaseChanges
+  }
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    compilationDatabasePath = try? container.decode(String.self, forKey: .compilationDatabasePath)
+    compilationDatabaseChanges = try? container.decode([String: ClangCompileCommand].self, forKey: .compilationDatabaseChanges)
+    guard (compilationDatabasePath == nil) != (compilationDatabaseChanges == nil) else {
+      throw MessageDecodingError.invalidRequest("ClangWorkspaceSettings can have one and only one valid property")
+    }
   }
 }
 

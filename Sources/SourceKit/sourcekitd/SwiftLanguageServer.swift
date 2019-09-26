@@ -197,7 +197,7 @@ extension SwiftLanguageServer {
      break
    case .documentUpdated(let settings):
     documentBuildSettingsUpdated(settings.url, language: settings.language)
-   case .unknown:
+   case .client(_), .unknown:
      break
    }
  }
