@@ -106,7 +106,7 @@ extension ClangLanguageServerShim {
       break
     case .documentUpdated(let settings):
       updateDocumentSettings(url: settings.url, language: settings.language)
-    case .unknown:
+    case .client(_), .unknown:
       break
     }
   }

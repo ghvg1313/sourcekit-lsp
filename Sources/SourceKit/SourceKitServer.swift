@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import LanguageServerProtocol
+import BuildServerProtocol
 import SKCore
 import SKSupport
 import IndexStoreDB
@@ -63,6 +64,7 @@ public final class SourceKitServer: LanguageServer {
     _register(SourceKitServer.cancelRequest)
     _register(SourceKitServer.shutdown)
     _register(SourceKitServer.exit)
+    _register(SourceKitServer.didChangeConfiguration)
 
     registerWorkspaceNotfication(SourceKitServer.openDocument)
     registerWorkspaceNotfication(SourceKitServer.closeDocument)
@@ -321,7 +323,7 @@ extension SourceKitServer {
     let hasConfigurationCapability = workspace?.clientCapabilities.workspace?.configuration ?? false
     if hasConfigurationCapability {
       let reg = Registration(requestType: DidChangeConfiguration.self)
-        _ = client.send(CapibilityRegistration(registrations: [reg]), queue: DispatchQueue.global(), reply: { result in
+        _ = client.send(RegisterCapability(registrations: [reg]), queue: DispatchQueue.global(), reply: { result in
             if let error = result.failure {
               log("error registering configuration change notification: \(error)")
             }
@@ -381,6 +383,15 @@ extension SourceKitServer {
 
   func didSaveDocument(_ note: Notification<DidSaveTextDocument>, workspace: Workspace) {
 
+  }
+  
+  // MARK: - Configuration
+  
+  func didChangeConfiguration(_ note: Notification<DidChangeConfiguration>) {
+    guard case let .client(settings) = note.params.settings else {
+      return
+    }
+    // TODO: Build server should handle configuration change.
   }
 
   // MARK: - Language features

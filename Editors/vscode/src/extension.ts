@@ -26,7 +26,9 @@ export function activate(context: vscode.ExtensionContext) {
             'objective-c',
             'objective-cpp'
         ],
-        synchronize: undefined
+        synchronize: {
+            configurationSection: 'sourcekit-lsp.buildServer'
+        }
     };
 
     const client = new langclient.LanguageClient('sourcekit-lsp', 'SourceKit Language Server', serverOptions, clientOptions);

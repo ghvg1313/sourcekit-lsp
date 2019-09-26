@@ -10,11 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// Notification from the server to register for a new capability on the client side.
+/// Request from the server to register for a new capability on the client side.
 ///
 /// - Parameters:
 ///   - registrations: List of capibilities the server wish to register for.
-public struct CapibilityRegistration: RequestType, Hashable {
+public struct RegisterCapability: RequestType, Hashable {
   public typealias Response = VoidResponse
   
   public static let method: String = "client/registerCapability"
