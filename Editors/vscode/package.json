@@ -68,6 +68,14 @@
                         "verbose"
                     ],
                     "description": "Traces the communication between VS Code and the SourceKit-LSP language server."
+                },
+                "sourcekit-lsp.scheme": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Scheme to pass to sourceit-lsp, index visibility will be reduced to the selected targets"
                 }
             }
         }

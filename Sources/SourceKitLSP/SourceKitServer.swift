@@ -47,6 +47,8 @@ public final class SourceKitServer: LanguageServer {
   var documentsReady: Set<DocumentURI> = []
 
   private var documentToPendingQueue: [DocumentURI: DocumentNotificationRequestQueue] = [:]
+  
+  var schemeOutputs: [BuildTargetIdentifier: [String]] = [:]
 
   public var workspace: Workspace?
 
@@ -75,6 +77,7 @@ public final class SourceKitServer: LanguageServer {
     registerWorkspaceNotfication(SourceKitServer.openDocument)
     registerWorkspaceNotfication(SourceKitServer.closeDocument)
     registerWorkspaceNotfication(SourceKitServer.changeDocument)
+    registerWorkspaceNotfication(SourceKitServer.didChangeConfiguration)
 
     registerToolchainTextDocumentNotification(SourceKitServer.willSaveDocument)
     registerToolchainTextDocumentNotification(SourceKitServer.didSaveDocument)
@@ -536,6 +539,15 @@ extension SourceKitServer {
     self.onExit = {}
     DispatchQueue.global().async {
       onExit()
+    }
+  }
+  
+  func didChangeConfiguration(_ notification: Notification<DidChangeConfigurationNotification>, workspace: Workspace) {
+    switch notification.params.settings {
+    case .scheme(let buildScheme):
+     onSchemeChange(buildScheme: buildScheme, workspace: workspace)
+    default:
+      break
     }
   }
 

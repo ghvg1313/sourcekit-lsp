@@ -114,6 +114,7 @@ public final class Workspace {
           databasePath: dbPath.pathString,
           library: lib,
           delegate: indexDelegate,
+          useExplicitOutputUnits: true,
           listenToUnitEvents: indexOptions.listenToUnitEvents)
         log("opened IndexStoreDB at \(dbPath) with store path \(storePath)")
       } catch {

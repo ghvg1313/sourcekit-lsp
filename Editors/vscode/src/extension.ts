@@ -18,6 +18,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     const serverOptions: langclient.ServerOptions = sourcekit;
 
+    let synchronizeOptions: langclient.SynchronizeOptions = {
+        configurationSection: [
+            'sourcekit-lsp.scheme'
+        ]
+    }
+
     let clientOptions: langclient.LanguageClientOptions = {
         documentSelector: [
             'swift',
@@ -26,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
             'objective-c',
             'objective-cpp'
         ],
-        synchronize: undefined
+        synchronize: synchronizeOptions
     };
 
     const client = new langclient.LanguageClient('sourcekit-lsp', 'SourceKit Language Server', serverOptions, clientOptions);
