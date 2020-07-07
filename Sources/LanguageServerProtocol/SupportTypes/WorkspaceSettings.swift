@@ -97,19 +97,19 @@ public struct BuildScheme: Codable, Hashable {
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    guard let langExtesnionDict = try? container.nestedContainer(keyedBy: CodingKeys.self, forKey: .sourcekit_lsp) else {
+    guard let langExtensionDict = try? container.nestedContainer(keyedBy: CodingKeys.self, forKey: .sourcekit_lsp) else {
         let context = DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected Build scheme from configuration change notification")
         throw DecodingError.dataCorrupted(context)
     }
-    let targetIDs = try langExtesnionDict.decode([String].self, forKey: .scheme)
+    let targetIDs = try langExtensionDict.decode([String].self, forKey: .scheme)
     self.targets = targetIDs.map {BuildTargetIdentifier(uri: DocumentURI(string: $0))}
   }
   
   public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
-    var langExtesnion = container.nestedContainer(keyedBy: CodingKeys.self, forKey: .sourcekit_lsp)
+    var langExtension = container.nestedContainer(keyedBy: CodingKeys.self, forKey: .sourcekit_lsp)
     let targetIDs = self.targets.map {$0.uri.stringValue}
-    try langExtesnion.encode(targetIDs, forKey: .scheme)
+    try langExtension.encode(targetIDs, forKey: .scheme)
   }
 }
 

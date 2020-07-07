@@ -48,7 +48,7 @@ public final class SourceKitServer: LanguageServer {
 
   private var documentToPendingQueue: [DocumentURI: DocumentNotificationRequestQueue] = [:]
   
-  var schemeOutputs: [BuildTargetIdentifier: [String]] = [:]
+  var schemeOutputs: Set<URI> = []
 
   public var workspace: Workspace?
 
