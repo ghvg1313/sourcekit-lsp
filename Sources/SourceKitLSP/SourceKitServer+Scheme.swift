@@ -44,7 +44,7 @@ extension SourceKitServer {
       while !topLevelTargets.isEmpty {
         let targetID = topLevelTargets.removeLast()
         if !transitiveDeps.contains(targetID), let target = targetMap[targetID] {
-          topLevelTargets.insert(contentsOf: target.dependencies, at: 0)
+          topLevelTargets.append(contentsOf: target.dependencies)
         }
         transitiveDeps.insert(targetID)
       }
@@ -57,10 +57,12 @@ extension SourceKitServer {
     switch response {
     case .success(let items):
       let currentOutputs = self.schemeOutputs
-      let newOutputs = Set(items.flatMap {$0.outputPaths})
+      let newOutputs = items.reduce(into: Set<URI>()) {
+        $0 = $0.union($1.outputPaths)
+      }
       self.schemeOutputs = newOutputs
-      let outputsToRemove = currentOutputs.subtracting(newOutputs).map {$0.pseudoPath}
-      let outputsToAdd = newOutputs.subtracting(currentOutputs).map {$0.pseudoPath}
+      let outputsToRemove = currentOutputs.subtracting(newOutputs).compactMap {$0.fileURL?.path}
+      let outputsToAdd = newOutputs.subtracting(currentOutputs).compactMap {$0.fileURL?.path}
       workspace.index?.removeUnitOutFilePaths(outputsToRemove, waitForProcessing: false)
       workspace.index?.addUnitOutFilePaths(outputsToAdd, waitForProcessing: false)
     case .failure(_):
