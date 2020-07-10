@@ -120,13 +120,12 @@ public struct BuildTargetIdentifier: Codable, Hashable {
     self.uri = uri
   }
   
-   public init(from decoder: Decoder) throws {
-     let uri = DocumentURI(string: try decoder.singleValueContainer().decode(String.self))
-     self.init(uri: uri)
-   }
+  public init(from decoder: Decoder) throws {
+    let uri = DocumentURI(string: try decoder.singleValueContainer().decode(String.self))
+    self.init(uri: uri)
+  }
 
-   public func encode(to encoder: Encoder) throws {
+  public func encode(to encoder: Encoder) throws {
     try self.uri.encode(to: encoder)
-   }
+  }
 }
-

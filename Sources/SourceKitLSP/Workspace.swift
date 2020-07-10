@@ -43,7 +43,7 @@ public final class Workspace {
   public var index: IndexStoreDB? = nil
   
   /// Indicate if indexStoreDB supports explicit unit outputs
-  /// TODO: Ideally this state could be exposed by indexStoreDB
+  /// TODO: Ideally this state could be exposed by indexStoreDB itself
   public let explicitIndexMode: Bool
 
   /// Open documents.

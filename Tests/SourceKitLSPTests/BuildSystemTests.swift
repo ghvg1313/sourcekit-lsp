@@ -35,6 +35,12 @@ final class TestBuildSystem: BuildSystem {
 
   /// Files currently being watched by our delegate.
   var watchedFiles: Set<DocumentURI> = []
+  
+  /// Mock response for `BuildTargets` request
+  var targets: [BuildTarget] = []
+  
+  /// Mock response for `BuildTargetOutputPaths` request
+  var targetOutputs: (([BuildTargetIdentifier]) -> [OutputsItem])? = nil
 
   func registerForChangeNotifications(for uri: DocumentURI, language: Language) {
     watchedFiles.insert(uri)
@@ -55,7 +61,7 @@ final class TestBuildSystem: BuildSystem {
   }
 
   func buildTargets(reply: @escaping (LSPResult<[BuildTarget]>) -> Void) {
-    reply(.failure(buildTargetsNotSupported))
+    reply(.success(targets))
   }
 
   func buildTargetSources(targets: [BuildTargetIdentifier], reply: @escaping (LSPResult<[SourcesItem]>) -> Void) {
@@ -63,7 +69,11 @@ final class TestBuildSystem: BuildSystem {
   }
 
   func buildTargetOutputPaths(targets: [BuildTargetIdentifier], reply: @escaping (LSPResult<[OutputsItem]>) -> Void) {
-    reply(.failure(buildTargetsNotSupported))
+    if let targetOutputs = targetOutputs {
+      reply(.success(targetOutputs(targets)))
+    } else {
+      reply(.failure(buildTargetsNotSupported))
+    }
   }
 }
 
@@ -421,8 +431,98 @@ final class BuildSystemTests: XCTestCase {
 
     wait(for: [use_c], timeout: 15)
   }
+  
+  func testSchemeChanged() {
+    haveClangd = ToolchainRegistry.shared.toolchains.contains { $0.clangd != nil }
+    testServer = TestSourceKitServer()
+    buildSystem = TestBuildSystem()
+
+    let server = testServer.server!
+    self.workspace = Workspace(
+      rootUri: nil,
+      clientCapabilities: ClientCapabilities(),
+      toolchainRegistry: ToolchainRegistry.shared,
+      buildSetup: TestSourceKitServer.serverOptions.buildSetup,
+      underlyingBuildSystem: buildSystem,
+      index: nil,
+      indexDelegate: nil,
+      explicitIndexMode: true)
+
+    server.workspace = workspace
+    workspace.buildSystemManager.delegate = server
+
+    sk = testServer.client
+    _ = try! sk.sendSync(InitializeRequest(
+        processId: nil,
+        rootPath: nil,
+        rootURI: nil,
+        initializationOptions: nil,
+        capabilities: ClientCapabilities(workspace: nil, textDocument: nil),
+        trace: .off,
+        workspaceFolders: nil))
+    
+    let targetGraph = mockBuildTargetGraph(targetStringRepr: [
+      "target://a:a": [],
+      "target://b:b": ["target://a:a"],
+      "target://c:c": ["target://b:b"],
+      "target://d:d": [],
+    ])
+    
+    buildSystem.targets = targetGraph
+    
+    let targetOutputResponse: (([BuildTargetIdentifier]) -> [OutputsItem]) = { (targets: [BuildTargetIdentifier]) in
+      return targets.compactMap { (targetIdentifier: BuildTargetIdentifier) in
+        let outputFile = URI(string: "file://" + targetIdentifier.uri.stringValue.split(separator: ":").last! + ".swift")
+        return OutputsItem(target: targetIdentifier, outputPaths: [outputFile])
+      }
+    }
+    buildSystem.targetOutputs = targetOutputResponse
+    
+    sk.allowUnexpectedNotification = false
+    
+    let targetURI = DocumentURI(string: "target://c:c")
+    let newBuildScheme = BuildScheme(targets: [BuildTargetIdentifier(uri: targetURI)])
+    let schemeChange: WorkspaceSettingsChange = .scheme(newBuildScheme)
+    sk.sendNoteSync(DidChangeConfigurationNotification(settings: schemeChange)) { (note: Notification<DidChangeConfigurationNotification>) in
+      guard case let .scheme(newScheme) = note.params.settings else {
+        XCTFail("Scheme parsing failed")
+        return
+      }
+      XCTAssertEqual(newScheme.targets.count, 1)
+      XCTAssertEqual(newScheme.targets.first?.uri, targetURI)
+    }
+    
+    let expectation = self.expectation(description: "scheme change")
+    sk.handleNextNotification { (note: Notification<DidChangeConfigurationNotification>) in
+      guard case let .scheme(newScheme) = note.params.settings else {
+        XCTFail("Scheme parsing failed")
+        return
+      }
+      XCTAssertEqual(newScheme.targets.count, 1)
+      XCTAssertEqual(newScheme.targets.first?.uri, targetURI)
+      expectation.fulfill()
+    }
+  }
 
   private func clangBuildSettings(for uri: DocumentURI) -> FileBuildSettings {
     return FileBuildSettings(compilerArguments: [uri.pseudoPath, "-DDEBUG"])
+  }
+  
+  private func mockBuildTargetGraph(targetStringRepr: [String: [String]]) -> [BuildTarget] {
+    return targetStringRepr.reduce(into: [BuildTarget]()) {
+      $0.append(mockBuildTarget(targetID: $1.key, depsID: $1.value))
+    }
+  }
+  
+  private func mockBuildTarget(targetID: String, depsID: [String]) -> BuildTarget {
+    return BuildTarget(
+      id: BuildTargetIdentifier(uri: DocumentURI(string: targetID)),
+      displayName: nil,
+      baseDirectory: nil,
+      tags: [],
+      capabilities: BuildTargetCapabilities(canCompile: false, canTest: false, canRun: false),
+      languageIds: [],
+      dependencies: depsID.map {BuildTargetIdentifier(uri: DocumentURI(string: $0))}
+    )
   }
 }
