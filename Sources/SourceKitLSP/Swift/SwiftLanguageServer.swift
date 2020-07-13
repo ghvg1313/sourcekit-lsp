@@ -496,6 +496,12 @@ extension SwiftLanguageServer {
           var filterName: String? = value[self.keys.name]
           let insertText: String? = value[self.keys.sourcetext]
           let typeName: String? = value[self.keys.typename]
+          let kind: sourcekitd_uid_t? = value[self.keys.kind]
+          let moduleName: String? = value[self.keys.module_name]
+          
+          if self.isValidCompletionItem(kind: kind, moduleName: moduleName, insertText: insertText) {
+            return true
+          }
 
           let clientCompletionCapabilities = self.clientCapabilities.textDocument?.completion
           let clientSupportsSnippets = clientCompletionCapabilities?.completionItem?.snippetSupport == true
@@ -527,7 +533,6 @@ extension SwiftLanguageServer {
           // Map SourceKit's not_recommended field to LSP's deprecated
           let notRecommended = (value[self.keys.not_recommended] as Int?).map({ $0 != 0 })
 
-          let kind: sourcekitd_uid_t? = value[self.keys.kind]
           result.items.append(CompletionItem(
             label: name,
             kind: kind?.asCompletionItemKind(self.values) ?? .value,
@@ -1225,6 +1230,25 @@ extension SwiftLanguageServer {
 
     // FIXME: cancellation
     _ = handle
+  }
+  
+  private func isValidCompletionItem(
+    kind: sourcekitd_uid_t?,
+    moduleName: String?,
+    insertText: String?) -> Bool {
+    
+    // Filter out Darwin global variables and internal functions
+    let internalFunc = insertText?.starts(with: "_") ?? false
+    let globalVar = kind == self.values.decl_var_global
+    if (internalFunc || globalVar) && moduleName?.starts(with: "Darwin") ?? false {
+     return false
+    }
+    
+    // Filter out CoreFoundation symbols
+    if moduleName?.starts(with: "CoreFoundation") ?? false {
+      return false
+    }
+    return true
   }
 }
 
