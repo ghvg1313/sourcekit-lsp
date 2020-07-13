@@ -61,6 +61,7 @@ public struct sourcekitd_keys {
   public let not_recommended: sourcekitd_uid_t
   public let num_bytes_to_erase: sourcekitd_uid_t
   public let associated_usrs: sourcekitd_uid_t
+  public let module_name: sourcekitd_uid_t
 
 
   public init(api: sourcekitd_functions_t) {
@@ -112,6 +113,7 @@ public struct sourcekitd_keys {
     not_recommended = api.uid_get_from_cstr("key.not_recommended")!
     num_bytes_to_erase = api.uid_get_from_cstr("key.num_bytes_to_erase")!
     associated_usrs = api.uid_get_from_cstr("key.associated_usrs")!
+    module_name = api.uid_get_from_cstr("key.modulename")!
   }
 }
 
